@@ -1,0 +1,10 @@
+name: MineCommands
+version: 0.0.1a
+description: Plugin de commandes générales et administratives
+authors: [Snaipe_S]
+website: http://forum.minekingdom.net
+
+main: net.minekingdom.MineCommands.MineCommands
+platform: SERVER
+softdepends: [Vanilla]
+reload: true

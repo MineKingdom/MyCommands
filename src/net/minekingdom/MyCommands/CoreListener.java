@@ -52,8 +52,8 @@ public class CoreListener implements Listener {
         
         if ( args.contains("$a ") || args.endsWith("$a") )
         {
-            if ( source.hasPermission("minecommands.environment.a") 
-              || source.hasPermission("minecommands.environment.*") )
+            if ( source.hasPermission("mycommands.environment.a") 
+              || source.hasPermission("mycommands.environment.*") )
             {
                 for ( Player player : MyCommands.getInstance().getServer().getOnlinePlayers() )
                 {

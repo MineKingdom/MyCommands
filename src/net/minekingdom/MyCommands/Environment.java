@@ -23,7 +23,7 @@ public class Environment {
     }
     
     @Command(aliases = {"set", "="}, desc = "Sets an environment variable", min = 2, max = 2, usage = "<variable> <value>")
-    @CommandPermissions("minecommands.set")
+    @CommandPermissions("mycommands.set")
     public void set(CommandContext args, CommandSource source) throws CommandException
     {
         Environment.variables.put(args.get(0).getPlainString(), args.get(1).getPlainString());
@@ -63,8 +63,8 @@ public class Environment {
                 if ( var.equals("a") )
                     continue;
                 
-                if ( source.hasPermission("minecommands.environment." + var) 
-                  || source.hasPermission("minecommands.environment.*") )
+                if ( source.hasPermission("mycommands.environment." + var) 
+                  || source.hasPermission("mycommands.environment.*") )
                 {
                     String repl = getVariableAs(source, var);
                     if ( repl != null )

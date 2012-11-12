@@ -68,7 +68,7 @@ public class MyCommands extends CommonPlugin {
         
         loadComponents();
         
-        log("MineCommands v" + this.getDescription().getVersion() + " enabled.");
+        log("MyCommands v" + this.getDescription().getVersion() + " enabled.");
     }
     
     private void loadComponents()
@@ -169,7 +169,7 @@ public class MyCommands extends CommonPlugin {
     @UnsafeMethod
     public void onDisable()
     {
-        log("MineCommands v" + this.getDescription().getVersion() + " disabled.");
+        log("MyCommands v" + this.getDescription().getVersion() + " disabled.");
     }
     
     public static void log(String msg)
@@ -199,7 +199,7 @@ public class MyCommands extends CommonPlugin {
 
     public static void sendErrorMessage(CommandSource source, Object... objects)
     {
-        source.sendMessage(new ChatArguments().append(ChatStyle.DARK_RED, "[MineCommands] ", ChatStyle.RED, objects));
+        source.sendMessage(new ChatArguments().append(ChatStyle.DARK_RED, "[MyCommands] ", ChatStyle.RED, objects));
     }
     
 }

@@ -161,7 +161,7 @@ public class MyCommands extends CommonPlugin {
             return;
         }
         
-        Environment.flush();
+        Environment.load();
         loadComponents();
     }
     

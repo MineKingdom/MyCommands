@@ -1,6 +1,6 @@
 name: MyCommands
-version: 0.0.1a
-description: Plugin de commandes générales et administratives
+version: 1.0.0
+description: Plugin that allows you to pick the commands you want.
 authors: [Snaipe_S]
 website: http://forum.minekingdom.net
 

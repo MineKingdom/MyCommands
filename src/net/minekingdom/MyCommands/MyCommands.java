@@ -3,6 +3,8 @@ package net.minekingdom.MyCommands;
 import java.io.File;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -24,6 +26,7 @@ import org.spout.api.command.annotated.SimpleInjector;
 import org.spout.api.event.Listener;
 import org.spout.api.exception.ConfigurationException;
 import org.spout.api.plugin.CommonPlugin;
+import org.spout.api.plugin.Plugin;
 
 public class MyCommands extends CommonPlugin {
 
@@ -71,6 +74,7 @@ public class MyCommands extends CommonPlugin {
         log("MyCommands v" + this.getDescription().getVersion() + " enabled.");
     }
     
+    @SuppressWarnings({ "rawtypes" })
     private void loadComponents()
     {
         List<File> files = new ArrayList<File>();
@@ -91,13 +95,14 @@ public class MyCommands extends CommonPlugin {
                 
                 if ( Listener.class.isAssignableFrom(c) )
                 {
-                    Listener l;
                     try
                     {
-                        l = (Listener) c.newInstance();
+                        Constructor ctor = c.getDeclaredConstructor(Plugin.class);
+                        ctor.setAccessible(true);
+                        Listener l = (Listener) ctor.newInstance(this);
                         this.getEngine().getEventManager().registerEvents(l, this);
                     }
-                    catch (InstantiationException | IllegalAccessException e)
+                    catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException e)
                     {
                         e.printStackTrace();
                     }

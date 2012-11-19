@@ -9,9 +9,12 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import net.minekingdom.MyCommands.CommandLoadOrder.Order;
 
 import org.spout.api.Server;
 import org.spout.api.UnsafeMethod;
@@ -80,52 +83,35 @@ public class MyCommands extends CommonPlugin {
         List<File> files = new ArrayList<File>();
         addTree(this.componentFolder, files);
         
+        List<Class<?>> components = new LinkedList<Class<?>>();
+        
         try
         {
             URL[] classes = { this.componentFolder.toURI().toURL() };
             URLClassLoader ucl = new URLClassLoader(classes, this.getClassLoader());
             
-            CommandRegistrationsFactory<Class<?>> commandRegFactory = new AnnotatedCommandRegistrationFactory(new SimpleInjector(this), new SimpleAnnotatedCommandExecutorFactory());
-            
-            this.getEngine().getRootCommand().addSubCommands(this, Environment.class, commandRegFactory);
-            
+            int normalIndex = 0;
             for ( File file : files )
             {
                 Class<?> c = ucl.loadClass(file.getName().replace(".class", ""));
                 
-                if ( Listener.class.isAssignableFrom(c) )
+                CommandLoadOrder loadOrder = c.getAnnotation(CommandLoadOrder.class);
+                if ( loadOrder != null )
                 {
-                    try
+                    if ( loadOrder.value().equals(Order.FIRST) )
                     {
-                        Constructor ctor = c.getDeclaredConstructor(Plugin.class);
-                        ctor.setAccessible(true);
-                        Listener l = (Listener) ctor.newInstance(this);
-                        this.getEngine().getEventManager().registerEvents(l, this);
+                        normalIndex++;
+                        components.add(0, c);
+                        continue;
                     }
-                    catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException e)
+                    else if ( loadOrder.value().equals(Order.LAST) )
                     {
-                        e.printStackTrace();
+                        components.add(c);
+                        continue;
                     }
                 }
-                
-                if ( PluginConfig.REPLACE_COMMANDS.getBoolean() )
-                {
-                    for ( Method m : c.getMethods() )
-                    {
-                        for ( Annotation a : m.getAnnotations() )
-                        {
-                            if ( a instanceof Command )
-                            {
-                                for ( String name : ((Command) a).aliases() )
-                                {
-                                    this.getEngine().getRootCommand().removeChild(name);
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                this.getEngine().getRootCommand().addSubCommands(this, c, commandRegFactory);
+                    
+                components.add(normalIndex, c);
             }
             
             ucl.close();
@@ -134,6 +120,50 @@ public class MyCommands extends CommonPlugin {
         {
             e.printStackTrace();
         }
+        
+        CommandRegistrationsFactory<Class<?>> commandRegFactory = new AnnotatedCommandRegistrationFactory(new SimpleInjector(this), new SimpleAnnotatedCommandExecutorFactory());
+        
+        this.getEngine().getRootCommand().addSubCommands(this, Environment.class, commandRegFactory);
+        
+        for ( Class<?> c : components )
+        {
+            if ( Listener.class.isAssignableFrom(c) )
+            {
+                try
+                {
+                    Constructor ctor = c.getDeclaredConstructor(Plugin.class);
+                    ctor.setAccessible(true);
+                    Listener l = (Listener) ctor.newInstance(this);
+                    this.getEngine().getEventManager().registerEvents(l, this);
+                }
+                catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException e)
+                {
+                    e.printStackTrace();
+                }
+            }
+            
+            if ( PluginConfig.REPLACE_COMMANDS.getBoolean() )
+            {
+                for ( Method m : c.getMethods() )
+                {
+                    for ( Annotation a : m.getAnnotations() )
+                    {
+                        if ( a instanceof Command )
+                        {
+                            for ( String name : ((Command) a).aliases() )
+                            {
+                                this.getEngine().getRootCommand().removeChild(name);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            this.getEngine().getRootCommand().addSubCommands(this, c, commandRegFactory);
+            log(c.getName() + " sucessfully loaded.");
+        }
+        
+        
     }
     
     private void addTree(File file, List<File> files)

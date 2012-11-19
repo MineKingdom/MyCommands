@@ -24,6 +24,7 @@ public class CoreListener implements Listener {
     public void onServerLoaded(ServerStartEvent event)
     {
         Environment.load();
+        MyCommands.log("Environment has been successfully loaded.");
     }
     
     @EventHandler(order = Order.EARLIEST)

@@ -8,20 +8,19 @@ import org.spout.api.entity.Player;
 import org.spout.api.event.EventHandler;
 import org.spout.api.event.Listener;
 import org.spout.api.event.Order;
+import org.spout.api.event.engine.EngineStartEvent;
 import org.spout.api.event.player.PlayerJoinEvent;
 import org.spout.api.event.player.PlayerLeaveEvent;
 import org.spout.api.event.server.PreCommandEvent;
-import org.spout.api.event.server.ServerStartEvent;
 import org.spout.api.event.world.WorldLoadEvent;
 import org.spout.api.event.world.WorldUnloadEvent;
 
-import net.minekingdom.MyCommands.environment.*;
 import net.minekingdom.MyCommands.environment.structures.*;
 
 public class CoreListener implements Listener {
     
     @EventHandler
-    public void onServerLoaded(ServerStartEvent event)
+    public void onEngineLoaded(EngineStartEvent event)
     {
         Environment.load();
         MyCommands.log("Environment has been successfully loaded.");

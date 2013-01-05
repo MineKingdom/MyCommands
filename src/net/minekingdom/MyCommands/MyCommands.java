@@ -2,10 +2,10 @@ package net.minekingdom.MyCommands;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
@@ -14,15 +14,16 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import net.minekingdom.MyCommands.CommandLoadOrder.Order;
+import net.minekingdom.MyCommands.annotated.CommandLoadOrder;
+import net.minekingdom.MyCommands.annotated.MyAnnotatedCommandRegistrationFactory;
+import net.minekingdom.MyCommands.annotated.CommandLoadOrder.Order;
+import net.minekingdom.MyCommands.config.PluginConfig;
 
 import org.spout.api.Server;
 import org.spout.api.UnsafeMethod;
 import org.spout.api.chat.ChatArguments;
-import org.spout.api.chat.style.ChatStyle;
 import org.spout.api.command.CommandRegistrationsFactory;
 import org.spout.api.command.CommandSource;
-import org.spout.api.command.annotated.AnnotatedCommandRegistrationFactory;
 import org.spout.api.command.annotated.Command;
 import org.spout.api.command.annotated.SimpleAnnotatedCommandExecutorFactory;
 import org.spout.api.command.annotated.SimpleInjector;
@@ -39,8 +40,10 @@ public class MyCommands extends CommonPlugin {
     private Server server;
     
     private File componentFolder;
+    private File configFolder;
     
     private PluginConfig config;
+    private ConfigurationManager configurationManager;
 
     @Override
     @UnsafeMethod
@@ -64,11 +67,17 @@ public class MyCommands extends CommonPlugin {
             return;
         }
         
+        configurationManager = new ConfigurationManager();
+        
         Environment.init();
         
         this.componentFolder = new File(getDataFolder() + File.separator + "components");
         if ( !this.componentFolder.exists() )
             this.componentFolder.mkdirs();
+        
+        this.configFolder = new File(getDataFolder() + File.separator + "config");
+        if ( !this.configFolder.exists() )
+            this.configFolder.mkdirs();
 
         this.getEngine().getEventManager().registerEvents(new CoreListener(), this);
         
@@ -85,85 +94,121 @@ public class MyCommands extends CommonPlugin {
         
         List<Class<?>> components = new LinkedList<Class<?>>();
         
-        try
+        List<String> classes = new ArrayList<String>();
+        List<URL> urls = new ArrayList<URL>();
+        
+        // Adds the url of every jar file.
         {
-            URL[] classes = { this.componentFolder.toURI().toURL() };
-            URLClassLoader ucl = new URLClassLoader(classes, this.getClassLoader());
+            try { urls.add(this.componentFolder.toURI().toURL()); }
+            catch ( MalformedURLException ex ) {}
             
-            int normalIndex = 0;
             for ( File file : files )
             {
-                Class<?> c = ucl.loadClass(file.getName().replace(".class", ""));
-                
-                CommandLoadOrder loadOrder = c.getAnnotation(CommandLoadOrder.class);
-                if ( loadOrder != null )
+                if ( file.getName().endsWith(".jar") )
                 {
-                    if ( loadOrder.value().equals(Order.FIRST) )
-                    {
-                        normalIndex++;
-                        components.add(0, c);
-                        continue;
+                    try 
+                    { 
+                        urls.add(new URL("jar:" + file.toURI().toURL() + "!/")); 
+                        classes.add(file.getName().substring(0, file.getName().length() - 4));
                     }
-                    else if ( loadOrder.value().equals(Order.LAST) )
-                    {
-                        components.add(c);
-                        continue;
-                    }
+                    catch ( MalformedURLException ex ) {}
+                    continue;
                 }
-                    
-                components.add(normalIndex, c);
+                
+                classes.add(file.getName().substring(0, file.getName().length() - 6));
             }
-            
-            ucl.close();
-        }
-        catch ( ClassNotFoundException | IOException e)
-        {
-            e.printStackTrace();
         }
         
-        CommandRegistrationsFactory<Class<?>> commandRegFactory = new AnnotatedCommandRegistrationFactory(new SimpleInjector(this), new SimpleAnnotatedCommandExecutorFactory());
+        URLClassLoader ucl = new URLClassLoader(urls.toArray(new URL[urls.size()]), this.getClassLoader());
         
-        this.getEngine().getRootCommand().addSubCommands(this, Environment.class, commandRegFactory);
-        
-        for ( Class<?> c : components )
+        // loads every class and puts them into the components list
         {
-            if ( Listener.class.isAssignableFrom(c) )
+            int normalIndex = 0;
+            for ( String name : classes )
             {
                 try
                 {
-                    Constructor ctor = c.getDeclaredConstructor(Plugin.class);
-                    ctor.setAccessible(true);
-                    Listener l = (Listener) ctor.newInstance(this);
-                    this.getEngine().getEventManager().registerEvents(l, this);
-                }
-                catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException e)
-                {
-                    e.printStackTrace();
-                }
-            }
-            
-            if ( PluginConfig.REPLACE_COMMANDS.getBoolean() )
-            {
-                for ( Method m : c.getMethods() )
-                {
-                    for ( Annotation a : m.getAnnotations() )
+                    Class<?> c = Class.forName(name, true, ucl);
+                    
+                    CommandLoadOrder loadOrder = c.getAnnotation(CommandLoadOrder.class);
+                    if ( loadOrder != null )
                     {
-                        if ( a instanceof Command )
+                        if ( loadOrder.value().equals(Order.FIRST) )
                         {
-                            for ( String name : ((Command) a).aliases() )
-                            {
-                                this.getEngine().getRootCommand().removeChild(name);
-                            }
+                            normalIndex++;
+                            components.add(0, c);
+                            continue;
+                        }
+                        else if ( loadOrder.value().equals(Order.LAST) )
+                        {
+                            components.add(c);
+                            continue;
                         }
                     }
+                        
+                    components.add(normalIndex, c);
                 }
+                catch ( ClassNotFoundException ex ) {}
             }
-            
-            this.getEngine().getRootCommand().addSubCommands(this, c, commandRegFactory);
-            log(c.getName() + " sucessfully loaded.");
         }
         
+        // Registers the commands and the listeners
+        {
+            CommandRegistrationsFactory<Class<?>> commandRegFactory = new MyAnnotatedCommandRegistrationFactory(new SimpleInjector(this), new SimpleAnnotatedCommandExecutorFactory());
+            
+            this.getEngine().getRootCommand().addSubCommands(this, Environment.class, commandRegFactory);
+            
+            for ( Class<?> c : components )
+            {
+                if ( Listener.class.isAssignableFrom(c) )
+                {
+                    try
+                    {
+                        Constructor ctor = c.getDeclaredConstructor(Plugin.class);
+                        ctor.setAccessible(true);
+                        Listener l = (Listener) ctor.newInstance(this);
+                        this.getEngine().getEventManager().registerEvents(l, this);
+                    }
+                    catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException e)
+                    {
+                        e.printStackTrace();
+                    }
+                }
+                
+                if ( PluginConfig.REPLACE_COMMANDS.getBoolean() )
+                {
+                    for ( Method m : c.getMethods() )
+                    {
+                        Command annotation = m.getAnnotation(Command.class);
+                        if ( annotation == null )
+                            continue;
+                        
+                        for ( String name : annotation.aliases() )
+                            this.getEngine().getRootCommand().removeChild(name);
+                    }
+                }
+                
+                try
+                {
+                    this.getEngine().getRootCommand().addSubCommands(this, c, commandRegFactory);
+                    log(c.getName() + " component sucessfully loaded.");
+                }
+                catch (Throwable t)
+                {
+                    log(Level.SEVERE, c.getName() + " failed to load.\n");
+                    t.printStackTrace();
+                }
+            }
+        }
         
+        try
+        {
+            ucl.close();
+        }
+        catch (IOException ex)
+        {
+            ex.printStackTrace();
+        }
     }
     
     private void addTree(File file, List<File> files)
@@ -173,7 +218,7 @@ public class MyCommands extends CommonPlugin {
         {
             for ( File child : children )
             {
-                if ( child.getName().endsWith(".class") )
+                if ( (child.getName().endsWith(".class") || child.getName().endsWith(".jar")) )
                     files.add(child);
                 
                 addTree(child, files);
@@ -196,6 +241,8 @@ public class MyCommands extends CommonPlugin {
             return;
         }
         
+        this.configurationManager.flush();
+        
         Environment.load();
         loadComponents();
     }
@@ -204,6 +251,7 @@ public class MyCommands extends CommonPlugin {
     @UnsafeMethod
     public void onDisable()
     {
+        this.configurationManager.save();
         log("MyCommands v" + this.getDescription().getVersion() + " disabled.");
     }
     
@@ -232,9 +280,14 @@ public class MyCommands extends CommonPlugin {
         source.sendMessage(new ChatArguments().append(objects));
     }
 
-    public static void sendErrorMessage(CommandSource source, Object... objects)
+    public ConfigurationManager getConfigurationManager()
     {
-        source.sendMessage(new ChatArguments().append(ChatStyle.DARK_RED, "[MyCommands] ", ChatStyle.RED, objects));
+        return this.configurationManager;
+    }
+
+    public File getConfigFolder()
+    {
+        return this.configFolder;
     }
     
 }

@@ -53,7 +53,7 @@ public class Environment {
             }
         }
         
-        MyCommands.sendErrorMessage(source, "Error: variable $" + name + " is a protected variable.");
+        throw new CommandException("Error: variable $" + name + " is a protected variable.");
     }
     
     private static SimpleStructure variables;

@@ -1,16 +1,13 @@
 package net.minekingdom.MyCommands.annotated;
 
 import java.io.File;
-import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Constructor;
 
 import net.minekingdom.MyCommands.MyCommands;
 
-import org.spout.api.Spout;
 import org.spout.api.command.annotated.AnnotatedCommandExecutorFactory;
 import org.spout.api.command.annotated.AnnotatedCommandRegistrationFactory;
 import org.spout.api.command.annotated.Injector;
-import org.spout.api.plugin.Platform;
 import org.spout.api.util.Named;
 import org.spout.api.util.config.ConfigurationHolderConfiguration;
 
@@ -28,11 +25,6 @@ public class MyAnnotatedCommandRegistrationFactory extends AnnotatedCommandRegis
     @Override
     public boolean register(Named owner, Class<?> commands, Object instance, org.spout.api.command.Command parent)
     {
-        CommandPlatform platform = commands.getAnnotation(CommandPlatform.class);
-        if (platform != null) 
-            if ( !platform.value().equals(Spout.getPlatform()) && !platform.value().equals(Platform.ALL) )
-                return false;
-        
         Class<? extends ConfigurationHolderConfiguration> configClass = null;
         
         CommandConfiguration configAnnotation = commands.getAnnotation(CommandConfiguration.class);
@@ -73,16 +65,5 @@ public class MyAnnotatedCommandRegistrationFactory extends AnnotatedCommandRegis
         }
 
         return super.register(owner, commands, instance, parent);
-    }
-    
-    @Override
-    protected org.spout.api.command.Command createCommand(Named owner, org.spout.api.command.Command parent, AnnotatedElement obj)
-    {
-        CommandPlatform platform = obj.getAnnotation(CommandPlatform.class);
-        if (platform != null) 
-            if ( !platform.value().equals(Spout.getPlatform()) && !platform.value().equals(Platform.ALL) )
-                return null;
-
-        return super.createCommand(owner, parent, obj);
     }
 }

@@ -15,20 +15,18 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import net.minekingdom.MyCommands.annotated.CommandLoadOrder;
-import net.minekingdom.MyCommands.annotated.MyAnnotatedCommandRegistrationFactory;
+import net.minekingdom.MyCommands.annotated.MyAnnotatedCommandExecutorFactory;
 import net.minekingdom.MyCommands.annotated.CommandLoadOrder.Order;
 import net.minekingdom.MyCommands.config.PluginConfig;
 
 import org.spout.api.UnsafeMethod;
-import org.spout.api.chat.ChatArguments;
-import org.spout.api.command.CommandExecutor;
-import org.spout.api.command.CommandRegistrationsFactory;
 import org.spout.api.command.CommandSource;
+import org.spout.api.command.Executor;
 import org.spout.api.command.annotated.Command;
 import org.spout.api.exception.ConfigurationException;
-import org.spout.api.plugin.CommonPlugin;
+import org.spout.api.plugin.Plugin;
 
-public class MyCommands extends CommonPlugin {
+public class MyCommands extends Plugin {
 
     private static MyCommands    instance;
     private static Logger        logger;
@@ -131,8 +129,6 @@ public class MyCommands extends CommonPlugin {
 
         // Registers the commands and the listeners
         {
-            CommandRegistrationsFactory<Class<?>> commandRegFactory = new MyAnnotatedCommandRegistrationFactory(this);
-
             for (Class<?> c : components) {
                 if (PluginConfig.REPLACE_COMMANDS.getBoolean()) {
                     for (Method m : c.getMethods()) {
@@ -140,13 +136,14 @@ public class MyCommands extends CommonPlugin {
                         if (annotation == null)
                             continue;
 
-                        for (String name : annotation.aliases())
-                            this.getEngine().getRootCommand().removeChild(name);
+                        /*for (String name : annotation.aliases()) {
+                            this.getEngine().getCommandManager().getRootCommand().removeChild(name);
+                        }*/
                     }
                 }
 
                 try {
-                    this.getEngine().getRootCommand().addSubCommands(this, c, commandRegFactory);
+                    MyAnnotatedCommandExecutorFactory.create(c);
                     log(c.getName() + " component sucessfully loaded.");
                 } catch (Throwable t) {
                     log(Level.SEVERE, c.getName() + " failed to load.\n");
@@ -176,12 +173,12 @@ public class MyCommands extends CommonPlugin {
 
     public void restoreReplacedCommands() {
         for (CommandInfo cmd : this.replacedCommands) {
-            this.getEngine().getRootCommand().getChild(cmd.getPreferredName())
+            this.getEngine().getCommandManager().getCommand(cmd.getPreferredName(), false)
                     .setExecutor(cmd.getExecutor())
                     .addAlias(cmd.getAliases())
-                    .setArgBounds(cmd.getMinArgBounds(), cmd.getMaxArgBounds())
+                    .setArgumentBounds(cmd.getMinArguments(), cmd.getMaxArguments())
                     .setHelp(cmd.getHelp())
-                    // TODO: add permission getter .setPermissions(true, "")
+                    .setPermission(cmd.getPemission())
                     .setUsage(cmd.getUsage());
         }
     }
@@ -224,8 +221,8 @@ public class MyCommands extends CommonPlugin {
         return instance;
     }
 
-    public static void sendMessage(CommandSource source, Object... objects) {
-        source.sendMessage(new ChatArguments().append(objects));
+    public static void sendMessage(CommandSource source, String message) {
+        source.sendMessage(message);
     }
 
     public ConfigurationManager getConfigurationManager() {
@@ -238,20 +235,26 @@ public class MyCommands extends CommonPlugin {
 
     public class CommandInfo {
 
-        private CommandExecutor executor;
+        private Executor        executor;
         private List<String>    aliases;
         private String          help;
         private String          usage;
+        private String          permission;
         private int             min;
         private int             max;
 
         public CommandInfo(org.spout.api.command.Command command) {
-            this.help = command.getHelp();
-            this.aliases = command.getNames();
-            this.usage = command.getUsage();
-            this.executor = command.getExecutor();
-            this.min = command.getMinArgBounds();
-            this.max = command.getMaxArgBounds();
+            this.help       = command.getHelp();
+            this.aliases    = command.getAliases();
+            this.usage      = command.getUsage();
+            this.permission = command.getPermission();
+            this.executor   = command.getExecutor();
+            this.min        = command.getMinArguments();
+            this.max        = command.getMaxArguments();
+        }
+
+        public String getPemission() {
+            return this.permission;
         }
 
         public String getUsage() {
@@ -262,11 +265,11 @@ public class MyCommands extends CommonPlugin {
             return this.help;
         }
 
-        public int getMaxArgBounds() {
+        public int getMaxArguments() {
             return this.max;
         }
 
-        public int getMinArgBounds() {
+        public int getMinArguments() {
             return this.min;
         }
 
@@ -276,7 +279,7 @@ public class MyCommands extends CommonPlugin {
             return out;
         }
 
-        public CommandExecutor getExecutor() {
+        public Executor getExecutor() {
             return this.executor;
         }
 

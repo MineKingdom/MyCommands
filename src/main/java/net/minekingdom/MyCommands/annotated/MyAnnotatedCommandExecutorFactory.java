@@ -1,36 +1,43 @@
 package net.minekingdom.MyCommands.annotated;
 
 import java.io.File;
-import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Constructor;
 
 import net.minekingdom.MyCommands.MyCommands;
 
-import org.spout.api.Spout;
-import org.spout.api.command.annotated.AnnotatedCommandRegistrationFactory;
-import org.spout.api.command.annotated.SimpleAnnotatedCommandExecutorFactory;
-import org.spout.api.command.annotated.SimpleInjector;
+import org.spout.api.command.annotated.AnnotatedCommandExecutor;
+import org.spout.api.command.annotated.AnnotatedCommandExecutorFactory;
 import org.spout.api.event.Listener;
-import org.spout.api.util.Named;
+import org.spout.api.plugin.Plugin;
 import org.spout.api.util.config.Configuration;
 
-public class MyAnnotatedCommandRegistrationFactory extends AnnotatedCommandRegistrationFactory {
-
-    private MyCommands plugin;
-
-    public MyAnnotatedCommandRegistrationFactory(MyCommands plugin) {
-        super(plugin.getEngine(), new SimpleInjector(plugin), new SimpleAnnotatedCommandExecutorFactory());
-        this.plugin = plugin;
+public final class MyAnnotatedCommandExecutorFactory {
+    
+    private MyAnnotatedCommandExecutorFactory() {
+    }
+    
+    public static AnnotatedCommandExecutor create(Class<?> clazz) {
+        return create(clazz, null);
+    }
+    
+    public static AnnotatedCommandExecutor create(Class<?> clazz, org.spout.api.command.Command parent) {
+        try {
+            Constructor<?> ctor = clazz.getDeclaredConstructor();
+            ctor.setAccessible(true);
+            return create(clazz, ctor.newInstance(), parent);
+        } catch (Exception ex) {
+            try {
+                Constructor<?> ctor = clazz.getDeclaredConstructor(Plugin.class);
+                ctor.setAccessible(true);
+                return create(clazz, ctor.newInstance(), parent);
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Class does not have a valid constructor.");
+            }
+        }
     }
 
-    @SuppressWarnings("unchecked")
-    @Override
-    public boolean register(Named owner, Class<?> commands, Object instance, org.spout.api.command.Command parent) {
-        
-        CommandPlatform platform = commands.getAnnotation(CommandPlatform.class);
-        if (platform != null && !platform.value().equals(Spout.getPlatform())) {
-            return false;
-        }
+    @SuppressWarnings({ "unchecked" })
+    public static AnnotatedCommandExecutor create(Class<?> commands, Object instance, org.spout.api.command.Command parent) {
         Class<? extends Configuration> configClass = null;
 
         CommandConfiguration configAnnotation = commands.getAnnotation(CommandConfiguration.class);
@@ -45,6 +52,8 @@ public class MyAnnotatedCommandRegistrationFactory extends AnnotatedCommandRegis
         } else {
             configClass = configAnnotation.value();
         }
+        
+        MyCommands plugin = MyCommands.getInstance();
 
         if (configClass != null) {
             try {
@@ -63,16 +72,6 @@ public class MyAnnotatedCommandRegistrationFactory extends AnnotatedCommandRegis
             plugin.getEngine().getEventManager().registerEvents((Listener) instance, plugin);
         }
 
-        return super.register(owner, commands, instance, parent);
-    }
-    
-    @Override
-    protected org.spout.api.command.Command createCommand(Named owner, org.spout.api.command.Command parent, AnnotatedElement obj) {
-        CommandPlatform platform = obj.getAnnotation(CommandPlatform.class);
-        if (platform != null && !platform.value().equals(Spout.getPlatform())) {
-            return null;
-        }
-
-        return super.createCommand(owner, parent, obj);
+        return AnnotatedCommandExecutorFactory.create(instance, parent);
     }
 }

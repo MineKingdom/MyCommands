@@ -15,7 +15,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import net.minekingdom.MyCommands.annotated.CommandLoadOrder;
-import net.minekingdom.MyCommands.annotated.MyAnnotatedCommandExecutorFactory;
+import net.minekingdom.MyCommands.annotated.CommandRegister;
 import net.minekingdom.MyCommands.annotated.CommandLoadOrder.Order;
 import net.minekingdom.MyCommands.config.PluginConfig;
 
@@ -102,7 +102,7 @@ public class MyCommands extends Plugin {
         }
 
         URLClassLoader ucl = new URLClassLoader(urls.toArray(new URL[urls.size()]), this.getClassLoader());
-
+        
         // loads every class and puts them into the components list
         {
             int normalIndex = 0;
@@ -143,7 +143,7 @@ public class MyCommands extends Plugin {
                 }
 
                 try {
-                    MyAnnotatedCommandExecutorFactory.create(c);
+                    CommandRegister.register(c);
                     log(c.getName() + " component sucessfully loaded.");
                 } catch (Throwable t) {
                     log(Level.SEVERE, c.getName() + " failed to load.\n");

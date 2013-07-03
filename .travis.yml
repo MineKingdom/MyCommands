@@ -1,7 +1,23 @@
 language: java
 jdk: oraclejdk7
 
-install: mvn clean install
+install: mvn clean install -DskipTests
+
+before_script:
+  - "gem install travis-artifacts"
+
+after_success:
+  - export PROJECT_ARTIFACT_ID="`sed -n 's|.*<artifactId>\(.*\)</artifactId>.*|\1|p' $TRAVIS_BUILD_DIR/pom.xml | awk '{ print $1; exit }'`" && echo Project artifactId is $PROJECT_ARTIFACT_ID
+  - export PROJECT_NAME="`sed -n 's|.*<name>\(.*\)</name>.*|\1|p' $TRAVIS_BUILD_DIR/pom.xml | awk '{ print $1; exit }'`" && echo Project name is $PROJECT_NAME
+  - export PROJECT_VERSION="`sed -n 's|.*<version>\(.*\)</version>.*|\1|p' $TRAVIS_BUILD_DIR/pom.xml | awk '{ print $1; exit }'`" && echo Project version is $PROJECT_VERSION
+  - "travis-artifacts upload --path target/$PROJECT_ARTIFACT_ID-$PROJECT_VERSION.jar --target-path artifacts/$PROJECT_ARTIFACT_ID/"
+
+env:
+  global:
+    - "ARTIFACTS_AWS_REGION=us-west-2"
+    - "ARTIFACTS_S3_BUCKET=Snaipe"
+    - secure: "DeQ4ukFsfLRyGqpCTgbcK6ebgKUPFOHkhXZtu39RXeJs+If0Bodlp0A60UvC\noFNFoG2u+1RGFBvTSA6ApYciQ2cVdhfrR98MsSxgUm0IxmbeLUjQaf0FD8Dt\ntMtOY5bv4XVhgIKgOrMsW7XnphT68gJMEWPcCytUwiIZEoPBAI4="
+    - secure: "evhmTQoqQDCUw9Rx/it28uyIbxxlFd5+XjX92M8eprNVJiD9LvFjQG2Fogo4\nBLlFlQaKugs3ML6F+5EXUS9pZ/xQsWHUQ8Ft7mAKf6PrVUmP/84pe7L6kpoH\nneEc3oOL8d5MMjps6yvrTsCYta7jh4PNYhrtVnW/MBK3IZZSaS0="
 
 notifications:
   email: true

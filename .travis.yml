@@ -1,23 +1,45 @@
+---
 language: java
 jdk: oraclejdk7
 
-install: mvn clean install -DskipTests
+install: mvn clean install -DskipTests -DbuildNumber=${TRAVIS_BUILD_NUMBER}
 
 before_script:
-  - "gem install travis-artifacts"
+- gem install dropbox-sdk
 
 after_success:
-  - export PROJECT_ARTIFACT_ID="`sed -n 's|.*<artifactId>\(.*\)</artifactId>.*|\1|p' $TRAVIS_BUILD_DIR/pom.xml | awk '{ print $1; exit }'`"
-  - export PROJECT_VERSION="`sed -n 's|.*<version>\(.*\)</version>.*|\1|p' $TRAVIS_BUILD_DIR/pom.xml | awk '{ print $1; exit }'`"
-  - cd target
-  - "travis-artifacts upload --path target/$PROJECT_ARTIFACT_ID-$PROJECT_VERSION.jar --target-path artifacts/$PROJECT_ARTIFACT_ID/"
+- export PROJECT_ARTIFACT_ID="`sed -n 's|.*<artifactId>\(.*\)</artifactId>.*|\1|p'
+  $TRAVIS_BUILD_DIR/pom.xml | awk '{ print $1; exit }'`" && echo Project artifactId
+  is $PROJECT_ARTIFACT_ID
+- export PROJECT_VERSION="`sed -n 's|.*<version>\(.*\)</version>.*|\1|p' $TRAVIS_BUILD_DIR/pom.xml
+  | awk '{ print $1; exit }'`" && echo Project version is $PROJECT_VERSION
+- export JAR_PATH="${TRAVIS_BUILD_NUMBER}/$PROJECT_ARTIFACT_ID-$PROJECT_VERSION.jar"
+  && echo Path to jar is $JAR_PATH
+- chmod a+x dropbox_upload.rb
+- ruby dropbox_upload.rb $API_KEY $API_SECRET $ACCESS_KEY $ACCESS_SECRET target/$PROJECT_ARTIFACT_ID-$PROJECT_VERSION.jar $JAR_PATH
 
 env:
   global:
-    - "ARTIFACTS_AWS_REGION=us-west-2"
-    - "ARTIFACTS_S3_BUCKET=snaipe.artifacts"
-    - secure: "DeQ4ukFsfLRyGqpCTgbcK6ebgKUPFOHkhXZtu39RXeJs+If0Bodlp0A60UvC\noFNFoG2u+1RGFBvTSA6ApYciQ2cVdhfrR98MsSxgUm0IxmbeLUjQaf0FD8Dt\ntMtOY5bv4XVhgIKgOrMsW7XnphT68gJMEWPcCytUwiIZEoPBAI4="
-    - secure: "evhmTQoqQDCUw9Rx/it28uyIbxxlFd5+XjX92M8eprNVJiD9LvFjQG2Fogo4\nBLlFlQaKugs3ML6F+5EXUS9pZ/xQsWHUQ8Ft7mAKf6PrVUmP/84pe7L6kpoH\nneEc3oOL8d5MMjps6yvrTsCYta7jh4PNYhrtVnW/MBK3IZZSaS0="
+  - secure: ! 'ji0WflD3u4uY0lZy8GquoWBQUNLvPgHpWxkMvhw2js782LeMT7lNDtDWlOP2
+
+      ywYFNTCBjT0SEpMLTmAUw81Ew3GApbmsbWmYmABPAqs+4YVXW2YTsklVOSwr
+
+      DMAXm4MOWsqzoA1SqVLJTjSEwO1hEKW3PUK9AsP8UD7xP87Dpgo='
+  - secure: ! 'G3ClX4PvbvHUqVRxlnVHcE9EA7y+zkRfCArfG2LJSr4fp1rVF4jnrjt2Ve1E
+
+      +fUpuLzLbR+0EtrVQN6RANakV6dBYvZ0VbE9qAydpN6djQDWIN+QW5ARkxgt
+
+      Bq5xAX4ySRv+4YLhjshWI7fHPZmIX1PdRtCji2VZSrwxY+07UQo='
+  - secure: ! 'CFkcfzKEiiM1j8C+njMiGaoSxsBXnhyxkqBCPot+GXtgcj7b/hALTIrDQRz0
+
+      tSl+9RTyMiYf2a4W8ydjAVbjwWiAPhzMWjzFCu2X060PnyoBVc6PhGAItQoc
+
+      Nj1bCop4KnnaE/7Zm0TSuOySixhzK/Hl4YW49KwRVuXmQmr99MA='
+  - secure: ! 'BAmfaUd7XLmVf6kfNIqQfxVJEU/y255JNFubDVRNwlyocLbRGh+Mvo2M84Rg
+
+      Z0xJuLIF32Kb08tSzaXYBUSsga0DS8gF8akjA4jzJefS1cG8pn8PeqCttMuq
+
+      VLvyvePjOavFBC0xg89H9ai5bthlvbrp0fQapsNiTvZum1/SBIE='
 
 notifications:
   email: true

@@ -8,7 +8,12 @@
 	<packaging>jar</packaging>
  
 	<name>MyCommands</name>
-	<url>http://forum.minekingdom.net</url>
+	<description>A command manager for Spout</description>
+	<url>http://minekingdom.net</url>
+	
+	<organization>
+		<name>Snaipe_S</name>
+	</organization>
  
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -29,7 +34,7 @@
 			<groupId>org.spout</groupId>
 			<artifactId>spoutapi</artifactId>
 			<version>${spoutVersion}</version>
-			<scope>provided</scope>
+			<scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>
@@ -38,10 +43,6 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
-	<description>A command manager for Spout</description>
-	<organization>
-		<name>Snaipe_S</name>
-	</organization>
 	
 	<build>
 		<defaultGoal>clean install</defaultGoal>

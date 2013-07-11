@@ -16,7 +16,7 @@ import org.spout.api.command.annotated.Platform;
 import org.spout.api.command.filter.CommandFilter;
 import org.spout.api.event.Listener;
 import org.spout.api.plugin.Plugin;
-import org.spout.api.util.config.Configuration;
+import org.spout.cereal.config.Configuration;
 
 public final class CommandRegister {
     
@@ -37,9 +37,9 @@ public final class CommandRegister {
             try {
                 Constructor<?> ctor = clazz.getDeclaredConstructor(Plugin.class);
                 ctor.setAccessible(true);
-                instance = ctor.newInstance();
+                instance = ctor.newInstance(MyCommands.getInstance());
             } catch (Exception e) {
-                throw new IllegalArgumentException("Class does not have a valid constructor.");
+                throw new IllegalArgumentException("Component " + clazz.getName() + " does not have a valid constructor. Valid constructors are empty or take a Plugin as a parameter.");
             }
         }
         register(clazz, instance, parent);

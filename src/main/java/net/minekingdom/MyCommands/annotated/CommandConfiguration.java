@@ -5,7 +5,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import org.spout.api.util.config.Configuration;
+import org.spout.cereal.config.Configuration;
 
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)

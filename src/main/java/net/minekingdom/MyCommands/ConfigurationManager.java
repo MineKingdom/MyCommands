@@ -3,8 +3,8 @@ package net.minekingdom.MyCommands;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.spout.api.exception.ConfigurationException;
-import org.spout.api.util.config.Configuration;
+import org.spout.cereal.config.Configuration;
+import org.spout.cereal.config.ConfigurationException;
 
 public class ConfigurationManager {
 

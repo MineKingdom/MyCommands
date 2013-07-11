@@ -23,8 +23,8 @@ import org.spout.api.UnsafeMethod;
 import org.spout.api.command.CommandSource;
 import org.spout.api.command.Executor;
 import org.spout.api.command.annotated.Command;
-import org.spout.api.exception.ConfigurationException;
 import org.spout.api.plugin.Plugin;
+import org.spout.cereal.config.ConfigurationException;
 
 public class MyCommands extends Plugin {
 
